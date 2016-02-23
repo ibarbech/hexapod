@@ -17,7 +17,7 @@
 #    along with RoboComp.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import sys, os, Ice, traceback, time
+import sys, os, Ice, traceback, time,collections
 
 from PySide import *
 
@@ -45,56 +45,72 @@ from pydynamixel import dynamixel
 class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
 		super(SpecificWorker, self).__init__(proxy_map)
-		self.Device=""
-		self.BaudRate=0
-		self.BasicPeriod=0
-		self.SDK=True
-		self.NumMotors=0
+		self.busParams=BusParams()
 		self.motores={}
+		self.SDK=False
+		self.lisPos=collections.deque()
+		self.lisVel=collections.deque()
+		self.mstateMap ={}
+
 		self.setParams()
-		try:
-			self.ser = dynamixel.get_serial_for_url(self.Device)
-		except Exception as e:
-			print('Unable to move to desired position.')
-        	print(e)
+#		try:
+		self.ser = dynamixel.get_serial_for_url(self.busParams.device)
+#		except Exception as e:
+#			print('Unable to move to desired position.')
+ #       	print e
 		self.timer.timeout.connect(self.compute)
-		self.Period = 2000
+		self.Period = 1000
 		self.timer.start(self.Period)
 
 	def setParams(self):
 		try:
 			name="Dynamixel"
-			self.NumMotors=int(self.configGetString("Dynamixel.NumMotors","0"))
+			self.busParams.numMotors=int(self.configGetString(name+".NumMotors"))
+			self.busParams.device=self.configGetString(name+".Device")
+			self.busParams.baudRate=int(self.configGetString(name+".BaudRate"))
+			self.busParams.basicPeriod=int(self.configGetString(name+".BasicPeriod"))
+			self.SDK=self.configGetString(name+".SDK")in("true")
+			if self.busParams.numMotors!="default":
+				for i in range(self.busParams.numMotors):
+					params=self.configGetString(name+".Params_"+str(i))
+					aux=params.split(",")
+					if "false" in aux[2]:
+						invert=False
+					elif "true" in aux[2]:
+						invert=True
+					m=MotorParams()
+					m.invertedSign=invert
+					m.busId=int(aux[1])
+					m.minPos=float(aux[3])
+					m.maxPos=float(aux[4])
+					m.maxVelocity=int(aux[6])
+					m.zeroPos=int(aux[5])
+					m.stepsRange=int(aux[7])
+					m.maxDegrees=int(aux[8])
+					m.offset=0
+					m.unitsRange=0
+					m.name=aux[0]
+					self.motores[aux[0]]=m
+					statem=MotorState()
 
-			for i in range(self.NumMotors):
-				params=self.configGetString(name+".Params_"+str(i), "default")
-				aux=params.split(",")
-				if "false" in aux[2]:
-					invert=False
-				elif "true" in aux[2]:
-					invert=True
-				m=MotorParams()
-				m.invertedSign=invert
-				m.busId=int(aux[1])
-				m.minPos=float(aux[3])
-				m.maxPos=float(aux[4])
-				m.maxVelocity=int(aux[6])
-				m.zeroPos=int(aux[5])
-				m.stepsRange=int(aux[7])
-				m.maxDegrees=int(aux[8])
-				m.offset=0
-				m.unitsRange=0
-				m.name=aux[0]
-				#diccionario={'BusId':int(aux[1]), 'InvertedSign':invert, 'MinPos':float(aux[3]), 'MaxPos':float(aux[4]), 'zero':int(aux[5]), 'maxVel':int(aux[6]), 'steps':int(aux[7]), 'MaxDegrees':int(aux[8])}
-				self.motores[aux[0]]=m
-			for j in self.motores:
-				print j," = ",self.motores[j]
+					statem.p=0
+					statem.v=0
+					statem.temperature=0
+					statem.isMoving=False
+					statem.pos=m.zeroPos
+					statem.vel=0.1
+					statem.power=1.
+					statem.timeStamp=""
+
+					self.mstateMap[m.name]=statem
+				for j in self.motores:
+					print j," = ",self.motores[j]
 		except:
 			traceback.print_exc()
 			print "Error reading config params"
 		return True
 
-	def configGetString(self, cadena, valdef):
+	def configGetString(self, cadena, valdef="default"):
 		value = valdef
 		with open("config","r") as f:
 			for linea in f.readlines():
@@ -113,10 +129,68 @@ class SpecificWorker(GenericWorker):
 						break
 		f.close()
 		return value
+	def mapear(self, x, in_min, in_max, out_min, out_max):
+		return (x-in_min)*(out_max-out_min)/(in_max-in_min)+out_min
 
 	@QtCore.Slot()
 	def compute(self):
+		x=0
+		y=0
+		x=len(self.lisPos)
+		y=len(self.lisVel)
+		print x,y
+
+		if(x!=0 or y!=0):
+			try:
+				if(x!=0):
+					m=self.lisPos.popleft()
+					busId=self.motores[m.name].busId
+					dynamixel.init(self.ser,busId)
+					pos=mapear(m.position, -1,1, 0,1023)
+					dynamixel.set_position(self.ser, busId, pos)
+					dynamixel.send_action_packet(self.ser)
+				if(y!=0):
+					m=self.lisVel.popleft()
+					busId=self.motores[m.name].busId
+					dynamixel.init(self.ser,busId)
+					vel=mapear(m.velocity, 0,1, 0,1023)
+					dynamixel.set_velocity(self.ser, busId, vel)
+					dynamixel.send_action_packet(self.ser)
+			except Ice.Exception, e:
+				traceback.print_exc()
+				print e
+		for mp in self.motores:
+			try:
+				mpar=self.motores[mp]
+				m=self.mstateMap[mp]
+				m.isMoving=dynamixel.get_is_moving(self.ser,mpar.busId)
+				pos=dynamixel.get_position(self.ser,mpar.busId)
+				m.pos=mapear(pos, 0,1023, -1,1)
+			except Ice.Exception, e:
+				traceback.print_exc()
+				print e
+
+
+
+
 		print 'SpecificWorker.compute...'
+		"""
+		m=MotorState()
+		try:
+			m.isMoving=dynamixel.get_is_moving(self.ser,self.motores[motor].busId)
+			pos=dynamixel.get_position(self.ser,self.motores[motor].busId)
+			m.pos=(pos)*(1+1)/(1023)-1
+			#m.p
+			#m.v
+			#m.temperature
+			#m.power
+			#m.timeStamp
+			#m.vel
+		except Ice.Exception, e:
+			traceback.print_exc()
+			print e
+		"""
+
 		#try:
 		#	self.differentialrobot_proxy.setSpeedBase(100, 0)
 		#except Ice.Exception, e:
@@ -139,13 +213,7 @@ class SpecificWorker(GenericWorker):
 	# getAllMotorState
 	#
 	def getAllMotorState(self):
-		#
-		# YOUR CODE HERE
-		#
-		mstateMap = MotorStateMap()
-
-
-		return mstateMap
+		return self.mstateMap
 
 
 	#
@@ -153,9 +221,6 @@ class SpecificWorker(GenericWorker):
 	#
 	def getMotorParams(self, motor):
 		ret = self.motores[motor]
-		#
-		# YOUR CODE HERE
-		#
 		return ret
 
 
@@ -163,10 +228,7 @@ class SpecificWorker(GenericWorker):
 	# getMotorState
 	#
 	def getMotorState(self, motor):
-		ret = MotorState()
-		#
-		# YOUR CODE HERE
-		#
+		ret=self.mstateMap[motor]
 		return ret
 
 
@@ -174,9 +236,8 @@ class SpecificWorker(GenericWorker):
 	# setSyncVelocity
 	#
 	def setSyncVelocity(self, listGoals):
-		#
-		# YOUR CODE HERE
-		#
+		for goal in listGoals:
+			self.lisVel.append(goal)
 		pass
 
 
@@ -184,10 +245,11 @@ class SpecificWorker(GenericWorker):
 	# setZeroPos
 	#
 	def setZeroPos(self, name):
-		busid = self.motores[name].busId
-		dynamixel.init(self.ser, busid)
-		dynamixel.set_position(self.ser, busid, 512)
-		dynamixel.send_action_packet(self.ser)
+		goal=MotorGoalPosition()
+		goal.name=name
+		goal.position=self.motores[name].zeroPos
+		goal.maxSpeed=0.1
+		self.lisPos.append(goal)
 		pass
 
 
@@ -195,22 +257,19 @@ class SpecificWorker(GenericWorker):
 	# getBusParams
 	#
 	def getBusParams(self):
-		ret = BusParams()
-		#
-		# YOUR CODE HERE
-		#
-		return ret
+		return self.busParams
 
 
 	#
 	# setSyncZeroPos
 	#
 	def setSyncZeroPos(self):
-		for motorparams in self.motores:
-			busid = motorparams.busId
-			dynamixel.init(self.ser, busid)
-			dynamixel.set_position(self.ser, busid, 512)
-			dynamixel.send_action_packet(self.ser)
+		for m in self.motores:
+			goal=MotorGoalPosition()
+			goal.name=m.name
+			goal.position=self.motores[m.name].zeroPos
+			goal.maxSpeed=0.1
+			self.lisPos.append(goal)
 		pass
 
 
@@ -219,11 +278,7 @@ class SpecificWorker(GenericWorker):
 	#
 	def setSyncPosition(self, listGoals):
 		for goal in listGoals:
-			busid = self.motores[goal.name].busId
-			dynamixel.init(self.ser, busid)
-			position=(goal.position+1)*(1023)/(1+1)
-			dynamixel.set_position(self.ser, busid, position)
-			dynamixel.send_action_packet(self.ser)
+			self.lisPos.append(goal)
 		pass
 
 
@@ -232,9 +287,8 @@ class SpecificWorker(GenericWorker):
 	#
 	def getMotorStateMap(self, mList):
 		ret = MotorStateMap()
-		#
-		# YOUR CODE HERE
-		#
+		for name in mList:
+			ret[name]=self.mstateMap[name]
 		return ret
 
 
@@ -242,11 +296,7 @@ class SpecificWorker(GenericWorker):
 	# setPosition
 	#
 	def setPosition(self, goal):
-		busid = self.motores[goal.name].busId
-		dynamixel.init(self.ser, busid)
-		position=(goal.position+1)*(1023)/(1+1)
-		dynamixel.set_position(self.ser, busid, position)
-		dynamixel.send_action_packet(self.ser)
+		self.lisPos.append(goal)
 		pass
 
 
@@ -254,12 +304,5 @@ class SpecificWorker(GenericWorker):
 	# setVelocity
 	#
 	def setVelocity(self, goal):
-		#
-		# YOUR CODE HERE
-		#
+		self.lisVel.append(goal)
 		pass
-
-
-
-
-

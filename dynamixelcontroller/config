@@ -6,8 +6,6 @@ JointMotor.Endpoints=tcp -p 20000
 # This property is used by the clients to connect to IceStorm.
 TopicManager.Proxy=IceStorm/TopicManager:default -p 9999
 
-#InnerModelPath=/home/robocomp/robocomp/files/innermodel/hexapod.xml
-
 Dynamixel.Device=/dev/ttyUSB0
 Dynamixel.BaudRate=115200
 Dynamixel.BasicPeriod=50
