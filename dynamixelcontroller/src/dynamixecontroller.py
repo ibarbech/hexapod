@@ -55,13 +55,11 @@
 #
 #
 
-import sys, traceback, Ice, IceStorm, subprocess, threading, time, Queue, os, copy
+import copy
 
 # Ctrl+c handling
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
-
-from PySide import *
 
 from specificworker import *
 
@@ -80,7 +78,6 @@ preStr = "-I"+ROBOCOMP+"/interfaces/ -I/opt/robocomp/interfaces/ --all "+ROBOCOM
 Ice.loadSlice(preStr+"CommonBehavior.ice")
 import RoboCompCommonBehavior
 Ice.loadSlice(preStr+"JointMotor.ice")
-import RoboCompJointMotor
 
 
 class CommonBehaviorI(RoboCompCommonBehavior.CommonBehavior):

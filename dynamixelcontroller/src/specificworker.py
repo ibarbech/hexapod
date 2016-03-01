@@ -40,11 +40,15 @@ from RoboCompJointMotor import *
 
 from jointmotorI import *
 
+#from threading import Lock
+from mutex	import *
+
 from pydynamixel import dynamixel
 
 class SpecificWorker(GenericWorker):
 	def __init__(self, proxy_map):
 		super(SpecificWorker, self).__init__(proxy_map)
+		self.mutmState=mutex()
 		self.busParams=BusParams()
 		self.motores={}
 		self.SDK=False
@@ -54,12 +58,14 @@ class SpecificWorker(GenericWorker):
 
 		self.setParams()
 #		try:
-		self.ser = dynamixel.get_serial_for_url(self.busParams.device)
+		self.ser = dynamixel.get_serial_for_url(self.busParams.device,self.busParams.baudRate)
+		for m in self.motores:
+			dynamixel.init(self.ser,m.busId)
 #		except Exception as e:
 #			print('Unable to move to desired position.')
  #       	print e
 		self.timer.timeout.connect(self.compute)
-		self.Period = 1000
+		self.Period = 100
 		self.timer.start(self.Period)
 
 	def setParams(self):
@@ -134,41 +140,32 @@ class SpecificWorker(GenericWorker):
 
 	@QtCore.Slot()
 	def compute(self):
-		x=0
-		y=0
 		x=len(self.lisPos)
 		y=len(self.lisVel)
-		print x,y
-
 		if(x!=0 or y!=0):
+			self.timer.timeout=0
 			try:
 				if(x!=0):
 					m=self.lisPos.popleft()
 					busId=self.motores[m.name].busId
-					dynamixel.init(self.ser,busId)
+
 					pos=mapear(m.position, -1,1, 0,1023)
 					dynamixel.set_position(self.ser, busId, pos)
 					dynamixel.send_action_packet(self.ser)
 				if(y!=0):
 					m=self.lisVel.popleft()
 					busId=self.motores[m.name].busId
-					dynamixel.init(self.ser,busId)
+
 					vel=mapear(m.velocity, 0,1, 0,1023)
 					dynamixel.set_velocity(self.ser, busId, vel)
 					dynamixel.send_action_packet(self.ser)
 			except Ice.Exception, e:
 				traceback.print_exc()
 				print e
-		for mp in self.motores:
-			try:
-				mpar=self.motores[mp]
-				m=self.mstateMap[mp]
-				m.isMoving=dynamixel.get_is_moving(self.ser,mpar.busId)
-				pos=dynamixel.get_position(self.ser,mpar.busId)
-				m.pos=mapear(pos, 0,1023, -1,1)
-			except Ice.Exception, e:
-				traceback.print_exc()
-				print e
+		else:
+			self.timer.timeout=100
+		self.mutmState.lock(self,self.updateState)
+
 
 
 
@@ -198,7 +195,19 @@ class SpecificWorker(GenericWorker):
 		#	print e
 		return True
 
-
+	def updateState(self):
+		print "abasdfasfasdfasdf"
+		for mp in self.motores:
+			try:
+				mpar=self.motores[mp]
+				m=self.mstateMap[mp]
+				m.isMoving=dynamixel.get_is_moving(self.ser,mpar.busId)
+				pos=dynamixel.get_position(self.ser,mpar.busId)
+				m.pos=mapear(pos, 0,1023, -1,1)
+			except Ice.Exception, e:
+				traceback.print_exc()
+				print e
+		pass
 	#
 	# getAllMotorParams
 	#
