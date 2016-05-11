@@ -52,6 +52,7 @@ public slots:
 	void updateState(int state);
 	void stateuphexapod();
 	void updateposleg();
+	void ResetSlider();
 
 private:
 	QTimer clk;
@@ -66,7 +67,7 @@ private:
 	int l1[3],l2[3];
 	RoboCompLegController::StateLeg statelegs[6];
 	RoboCompLegController::AnglesLeg angles;
-	
+	RoboCompLegController::AnglesLeg angles_pre;
 	/*---------------------------------------------*/
 	void updateStates();
 	void statesmachine();
@@ -74,6 +75,8 @@ private:
 	void fkLegs();
 	void ikLegs();
 	void ikBody();
+	void ikonlioneleg();
+	void fkonlioneleg();
 	bool caminar3x3();
 	bool rotar();
 	

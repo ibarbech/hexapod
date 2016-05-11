@@ -18,6 +18,7 @@
  */
 #include "specificworker.h"
 #include <qt4/Qt/qlocale.h>
+#include <qt4/Qt/qdebug.h>
 #define tbezier 0.2
 /**
 * \brief Default constructor
@@ -66,6 +67,7 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(updateState(int)));
 	connect(Uphexapod, SIGNAL(clicked()), this, SLOT(stateuphexapod()));
 	connect(Updatepos, SIGNAL(clicked()), this, SLOT(updateposleg()));
+	connect(Reset, SIGNAL(clicked()), this, SLOT(ResetSlider()));
 }
 
 /**
@@ -118,6 +120,7 @@ void SpecificWorker::compute()
 			uphexapod();
 			break;
 		case 0:
+			LEGS->setVisible(false);
 			break;
 		case 1://Alternating tripod
 				if(caminar3x3())
@@ -135,13 +138,12 @@ void SpecificWorker::compute()
 					lrot=QVec::vec3(0,0,Y);
 			break;
 		case 5://FK legs
-			if(X_pre!=X || Y_pre!=Y || Z_pre!=Z)
+			if(angles_pre.q1!=angles.q1||angles_pre.q2!=angles.q2||angles_pre.q3!=angles.q3)
 			{
 				fkLegs();
-				X_pre=X;
-				Y_pre=Y;
-				Z_pre=Z;
-				qDebug()<<"entro";
+				angles_pre.q1=angles.q1;
+				angles_pre.q2=angles.q2;
+				angles_pre.q3=angles.q3;
 			}
 			break;
 		case 6://IK Legs
@@ -155,14 +157,37 @@ void SpecificWorker::compute()
 			}
 			break;
 		case 7://IK Body
-			if(X_pre!=X || Y_pre!=Y || Z_pre!=Z)
+			if(X_pre!=X || Y_pre!=Y || Z_pre!=Z||angles_pre.q1!=angles.q1||angles_pre.q2!=angles.q2||angles_pre.q3!=angles.q3)
 			{
 				ikBody();
 				X_pre=X;
 				Y_pre=Y;
 				Z_pre=Z;
+				angles_pre.q1=angles.q1;
+				angles_pre.q2=angles.q2;
+				angles_pre.q3=angles.q3;
 			}
 			break;
+		case 8:
+			if(X_pre!=X || Y_pre!=Y || Z_pre!=Z)
+			{
+				ikonlioneleg();
+				
+				X_pre=X;
+				Y_pre=Y;
+				Z_pre=Z;
+			}
+			break;
+		case 9:
+			if(angles_pre.q1!=angles.q1||angles_pre.q2!=angles.q2||angles_pre.q3!=angles.q3)
+			{
+				fkonlioneleg();
+				angles_pre.q1=angles.q1;
+				angles_pre.q2=angles.q2;
+				angles_pre.q3=angles.q3;
+			}
+			break;
+			
 	}
 	for(int i=0;i<6;i++)
 		statelegs[i] = proxies[i]->getStateLeg();
@@ -350,6 +375,7 @@ void SpecificWorker::fkLegs()
 
 void SpecificWorker::ikBody()
 {
+	qDebug()<<"entro";
 	RoboCompLegController::PoseBody pb[6];
 	bool simufallida =false;
 	for(int i=0;i<6;i++)
@@ -362,9 +388,9 @@ void SpecificWorker::ikBody()
 		pb[i].px=legsp[i].x();
 		pb[i].py=legsp[i].y();
 		pb[i].pz=legsp[i].z();
-		pb[i].x = 0;
-		pb[i].y = 0;
-		pb[i].z = 0;
+		pb[i].x = X;
+		pb[i].y = Y;
+		pb[i].z = Z;
 	}
 	
 	for(int i=0;i<6;i++)
@@ -378,6 +404,25 @@ void SpecificWorker::ikBody()
 	if(!simufallida)
 		for(int i=0;i<6;i++)
 			proxies[i]->setIKBody(pb[i],false);
+}
+
+void SpecificWorker::fkonlioneleg()
+{
+	if(proxies[LEGS->currentIndex()]->setFKLeg(angles,true))
+		proxies[LEGS->currentIndex()]->setFKLeg(angles,false);
+}
+
+void SpecificWorker::ikonlioneleg()
+{
+	int i= LEGS->currentIndex();
+	RoboCompLegController::PoseLeg pos;
+	pos.ref=base.toStdString();
+	pos.vel=vel;
+	pos.x=legsp[i].x()+x;
+	pos.y=legsp[i].y()+y;
+	pos.z=legsp[i].z()+z;
+	if(proxies[i]->setIKLeg(pos,true))
+		proxies[i]->setIKLeg(pos,false);
 }
 
 void SpecificWorker::uphexapod()
@@ -459,7 +504,7 @@ double SpecificWorker::mapear(double x, double in_min, double in_max, double out
 
 void SpecificWorker::update()
 {
-	int value_x, value_y, value_z;
+	float value_x, value_y, value_z;
 	value_x=sliderX->value();
 	value_y=sliderY->value();
 	value_z=sliderZ->value();
@@ -480,11 +525,16 @@ void SpecificWorker::update()
 	
 	vel=sliderVel->value();
 	
-	
-	angles.q1=(sliderq1->value()/35537);
-	angles.q2=(sliderq2->value()/35537);
-	angles.q3=(sliderq3->value()/35537);
-	
+	angles_pre.q1=angles.q1;
+	angles_pre.q2=angles.q2;
+	angles_pre.q3=angles.q3;
+	float aux=sliderq1->value();
+	angles.q1=(aux/35537.0);
+	aux=sliderq2->value();
+	angles.q2=(aux/35537.0);
+	aux=sliderq3->value();
+	angles.q3=(aux/35537.0);
+
 	valueX->setText(QString::number(X));
 	valueY->setText(QString::number(Y));
 	valueZ->setText(QString::number(Z));
@@ -497,6 +547,10 @@ void SpecificWorker::update()
 void SpecificWorker::updateState(int state)
 {
 	modovalue=state;
+	if(state==8||state==9)
+		LEGS->setVisible(true);
+	else
+		LEGS->setVisible(false);
 }
 
 void SpecificWorker::stateuphexapod()
@@ -513,7 +567,14 @@ void SpecificWorker::updateposleg()
 	}
 }
 
-
-
-
-
+void SpecificWorker::ResetSlider()
+{
+	sliderq1->setSliderPosition(0);
+	sliderq2->setSliderPosition(0);
+	sliderq3->setSliderPosition(0);
+	sliderX->setSliderPosition(0);
+	sliderY->setSliderPosition(0);
+	sliderZ->setSliderPosition(0);
+	sliderVel->setSliderPosition(0);
+	update();
+}
