@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>739</width>
-    <height>650</height>
+    <width>784</width>
+    <height>616</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,7 +18,7 @@
     <rect>
      <x>10</x>
      <y>10</y>
-     <width>720</width>
+     <width>761</width>
      <height>340</height>
     </rect>
    </property>
@@ -132,8 +132,8 @@
   <widget class="QSplitter" name="splitter_27">
    <property name="geometry">
     <rect>
-     <x>290</x>
-     <y>390</y>
+     <x>270</x>
+     <y>380</y>
      <width>401</width>
      <height>201</height>
     </rect>
@@ -145,12 +145,12 @@
     <property name="orientation">
      <enum>Qt::Vertical</enum>
     </property>
-    <widget class="QLabel" name="label_40">
+    <widget class="QLabel" name="Point">
      <property name="text">
       <string>Point (mm))</string>
      </property>
     </widget>
-    <widget class="QLabel" name="label_41">
+    <widget class="QLabel" name="Angles">
      <property name="text">
       <string>Angles (rad)</string>
      </property>
@@ -164,32 +164,32 @@
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
-     <widget class="QLabel" name="label">
+     <widget class="QLabel" name="labelX">
       <property name="text">
        <string>X</string>
       </property>
      </widget>
-     <widget class="QLabel" name="label_2">
+     <widget class="QLabel" name="labelY">
       <property name="text">
        <string>Y</string>
       </property>
      </widget>
-     <widget class="QLabel" name="label_3">
+     <widget class="QLabel" name="labelZ">
       <property name="text">
        <string>Z</string>
       </property>
      </widget>
-     <widget class="QLabel" name="label_13">
+     <widget class="QLabel" name="labelq1">
       <property name="text">
        <string>q1</string>
       </property>
      </widget>
-     <widget class="QLabel" name="label_35">
+     <widget class="QLabel" name="labelq2">
       <property name="text">
        <string>q2</string>
       </property>
      </widget>
-     <widget class="QLabel" name="label_39">
+     <widget class="QLabel" name="labelq3">
       <property name="text">
        <string>q3</string>
       </property>
@@ -307,9 +307,9 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>460</y>
+     <y>440</y>
      <width>121</width>
-     <height>71</height>
+     <height>131</height>
     </rect>
    </property>
    <property name="orientation">

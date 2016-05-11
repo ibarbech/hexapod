@@ -33,6 +33,8 @@
 
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
+
+#include <qt4/QtCore/QQueue>
 #include <osgviewer/osgview.h>
 #include <innermodel/innermodelviewer.h>
 #include <qt4/QtCore/QTimer>
@@ -59,8 +61,9 @@ private:
 	InnerModel *inner;
 	QString base;
 	QStringList legs;
+	QQueue<int> stateCrawl;
 	int X, Y, Z, X_pre, Y_pre, Z_pre, modovalue, modoaux,syn;
-	float ik_x, ik_y, ik_z, vel, x, y , z;
+	float ik_x, ik_y, ik_z, vel, x, y , z, incremento;
 	QVec legsp[6], lini, lfin, lmed, lrot, lrot1, lrot2;
 	bool IK;
 	LegControllerPrx proxies[6];
@@ -75,10 +78,15 @@ private:
 	void fkLegs();
 	void ikLegs();
 	void ikBody();
-	void ikonlioneleg();
-	void fkonlioneleg();
+	void ikonlyoneleg();
+	void fkonlyoneleg();
 	bool caminar3x3();
+	bool Crawl();
+	bool Quadruped();
 	bool rotar();
+	void ocultarPoint();
+	void ocultarAngles();
+	void mostrarPointandAngles();
 	
 	
 	QVec bezier3(QVec p0, QVec p1, QVec p2, float t);

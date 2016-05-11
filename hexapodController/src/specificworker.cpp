@@ -36,6 +36,13 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	proxies[4]=legcontroller5_proxy;
 	proxies[5]=legcontroller6_proxy;
 	
+	stateCrawl.enqueue(0);
+	stateCrawl.enqueue(1);
+	stateCrawl.enqueue(2);
+	stateCrawl.enqueue(3);
+	stateCrawl.enqueue(4);
+	stateCrawl.enqueue(5);
+	
 	lini=QVec::vec3(0,0,0);
 	lfin=QVec::vec3(0,0,0);
 	lmed=QVec::vec3(0,70,0);
@@ -106,7 +113,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	for(auto p:legsp)
 		qDebug()<<p;
 	
-	timer.start(10);
+	timer.start(100);
 	
 	return true;
 }
@@ -123,40 +130,52 @@ void SpecificWorker::compute()
 			LEGS->setVisible(false);
 			break;
 		case 1://Alternating tripod
+				ocultarAngles();
 				if(caminar3x3())
 				{
 					lini=QVec::vec3(-X,0,-Z);
 					lfin=QVec::vec3(X,0,Z);
 				}
 			break;
-		case 2:
+		case 2://Cuadrupedo
+				
 			break;
-		case 3:
+		case 3://Crawl
+				ocultarAngles();
+				if(Crawl())
+				{
+					lini=QVec::vec3(-X,0,-Z);
+					lfin=QVec::vec3(X,0,Z);
+				}
 			break;
 		case 4://rotate
+				ocultarAngles();
 				if(rotar())
 					lrot=QVec::vec3(0,0,Y);
 			break;
 		case 5://FK legs
-			if(angles_pre.q1!=angles.q1||angles_pre.q2!=angles.q2||angles_pre.q3!=angles.q3)
-			{
-				fkLegs();
-				angles_pre.q1=angles.q1;
-				angles_pre.q2=angles.q2;
-				angles_pre.q3=angles.q3;
-			}
+				ocultarPoint();
+				if(angles_pre.q1!=angles.q1||angles_pre.q2!=angles.q2||angles_pre.q3!=angles.q3)
+				{
+					fkLegs();
+					angles_pre.q1=angles.q1;
+					angles_pre.q2=angles.q2;
+					angles_pre.q3=angles.q3;
+				}
 			break;
 		case 6://IK Legs
-			if(X_pre!=X || Y_pre!=Y || Z_pre!=Z)
-			{
-				ikLegs();
-			
-				X_pre=X;
-				Y_pre=Y;
-				Z_pre=Z;
+				ocultarAngles();
+				if(X_pre!=X || Y_pre!=Y || Z_pre!=Z)
+				{
+					ikLegs();
+				
+					X_pre=X;
+					Y_pre=Y;
+					Z_pre=Z;
 			}
 			break;
 		case 7://IK Body
+			mostrarPointandAngles();
 			if(X_pre!=X || Y_pre!=Y || Z_pre!=Z||angles_pre.q1!=angles.q1||angles_pre.q2!=angles.q2||angles_pre.q3!=angles.q3)
 			{
 				ikBody();
@@ -168,24 +187,26 @@ void SpecificWorker::compute()
 				angles_pre.q3=angles.q3;
 			}
 			break;
-		case 8:
-			if(X_pre!=X || Y_pre!=Y || Z_pre!=Z)
-			{
-				ikonlioneleg();
-				
-				X_pre=X;
-				Y_pre=Y;
-				Z_pre=Z;
-			}
+		case 8://IKonlyoneleg
+				ocultarAngles();
+				if(X_pre!=X || Y_pre!=Y || Z_pre!=Z)
+				{
+					ikonlyoneleg();
+					
+					X_pre=X;
+					Y_pre=Y;
+					Z_pre=Z;
+				}
 			break;
-		case 9:
-			if(angles_pre.q1!=angles.q1||angles_pre.q2!=angles.q2||angles_pre.q3!=angles.q3)
-			{
-				fkonlioneleg();
-				angles_pre.q1=angles.q1;
-				angles_pre.q2=angles.q2;
-				angles_pre.q3=angles.q3;
-			}
+		case 9://FKonlyoneleg
+				ocultarPoint();
+				if(angles_pre.q1!=angles.q1||angles_pre.q2!=angles.q2||angles_pre.q3!=angles.q3)
+				{
+					fkonlyoneleg();
+					angles_pre.q1=angles.q1;
+					angles_pre.q2=angles.q2;
+					angles_pre.q3=angles.q3;
+				}
 			break;
 			
 	}
@@ -375,7 +396,6 @@ void SpecificWorker::fkLegs()
 
 void SpecificWorker::ikBody()
 {
-	qDebug()<<"entro";
 	RoboCompLegController::PoseBody pb[6];
 	bool simufallida =false;
 	for(int i=0;i<6;i++)
@@ -406,13 +426,13 @@ void SpecificWorker::ikBody()
 			proxies[i]->setIKBody(pb[i],false);
 }
 
-void SpecificWorker::fkonlioneleg()
+void SpecificWorker::fkonlyoneleg()
 {
 	if(proxies[LEGS->currentIndex()]->setFKLeg(angles,true))
 		proxies[LEGS->currentIndex()]->setFKLeg(angles,false);
 }
 
-void SpecificWorker::ikonlioneleg()
+void SpecificWorker::ikonlyoneleg()
 {
 	int i= LEGS->currentIndex();
 	RoboCompLegController::PoseLeg pos;
@@ -423,6 +443,115 @@ void SpecificWorker::ikonlioneleg()
 	pos.z=legsp[i].z()+z;
 	if(proxies[i]->setIKLeg(pos,true))
 		proxies[i]->setIKLeg(pos,false);
+}
+
+bool SpecificWorker::Crawl()
+{
+	static float i=0;
+	bool ismoving=false;
+	if(i>1)
+	{	
+		i=0;
+		for(int k=0;k<6;k++)
+			if(proxies[k]->getStateLeg().ismoving)
+			{
+				ismoving=true;
+				break;
+			}
+		if(!ismoving)
+			stateCrawl.enqueue(stateCrawl.dequeue());
+	}
+	if(!ismoving)	
+	{
+		if(lini!=QVec::vec3(0, 0, 0)&&lfin!=QVec::vec3(0,0,0))
+		{
+			int aux=stateCrawl.dequeue();
+			RoboCompLegController::StateLeg st=statelegs[aux];
+			QVec ini =QVec::vec3(st.x,legsp[aux].y(),st.z),
+			fin = legsp[aux]+lfin,med=legsp[aux],
+			tmp=bezier3(ini,QVec::vec3(med.x(),0,med.z()),fin,i);
+			stateCrawl.enqueue(aux);
+			RoboCompLegController::PoseLeg p;
+			p.x=tmp.x();
+			p.y=tmp.y();
+			p.z=tmp.z();
+			p.ref=base.toStdString();
+			p.vel=6;
+			proxies[aux]->setIKLeg(p,false);
+			
+			
+			aux=stateCrawl.dequeue();
+			st=statelegs[aux];
+			ini = QVec::vec3(st.x,legsp[aux].y(),st.z),
+			fin = legsp[aux]-lfin-((lini-lfin)/5),
+			tmp = bezier2(ini,fin,i);
+			stateCrawl.enqueue(aux);
+			p.x=tmp.x();
+			p.y=tmp.y();
+			p.z=tmp.z();
+			p.ref=base.toStdString();
+			p.vel=6;
+			proxies[aux]->setIKLeg(p,false);
+			
+			aux=stateCrawl.dequeue();
+			st=statelegs[aux];
+			ini = QVec::vec3(st.x,legsp[aux].y(),st.z),
+			fin = legsp[aux]-lfin-(((lini-lfin)/5)*2),
+			tmp = bezier2(ini,fin,i);
+			stateCrawl.enqueue(aux);
+			p.x=tmp.x();
+			p.y=tmp.y();
+			p.z=tmp.z();
+			p.ref=base.toStdString();
+			p.vel=6;
+			proxies[aux]->setIKLeg(p,false);
+			
+			aux=stateCrawl.dequeue();
+			st=statelegs[aux];
+			ini = QVec::vec3(st.x,legsp[aux].y(),st.z),
+			fin = legsp[aux]-lfin-(((lini-lfin)/5)*3),
+			tmp = bezier2(ini,fin,i);
+			stateCrawl.enqueue(aux);
+			p.x=tmp.x();
+			p.y=tmp.y();
+			p.z=tmp.z();
+			p.ref=base.toStdString();
+			p.vel=6;
+			proxies[aux]->setIKLeg(p,false);
+			
+			aux=stateCrawl.dequeue();
+			st=statelegs[aux];
+			ini = QVec::vec3(st.x,legsp[aux].y(),st.z),
+			fin = legsp[aux]-lfin-(((lini-lfin)/5)*4),
+			tmp = bezier2(ini,fin,i);
+			stateCrawl.enqueue(aux);
+			p.x=tmp.x();
+			p.y=tmp.y();
+			p.z=tmp.z();
+			p.ref=base.toStdString();
+			p.vel=6;
+			proxies[aux]->setIKLeg(p,false);
+			
+			aux=stateCrawl.dequeue();
+			st=statelegs[aux];
+			ini = QVec::vec3(st.x,legsp[aux].y(),st.z),
+			fin = legsp[aux]-lfin-(lini-lfin),
+			tmp = bezier2(ini,fin,i);
+			stateCrawl.enqueue(aux);
+			p.x=tmp.x();
+			p.y=tmp.y();
+			p.z=tmp.z();
+			p.ref=base.toStdString();
+			p.vel=6;
+			proxies[aux]->setIKLeg(p,false);
+			
+			i+=tbezier;
+			if(i>1)
+				return true;
+			return false;
+		}
+	}
+	return true;
 }
 
 void SpecificWorker::uphexapod()
@@ -449,7 +578,6 @@ void SpecificWorker::uphexapod()
 			p.z=tmp.z();
 			proxies[s]->setIKLeg(p,false);
 		}
-		qDebug()<<i;
 		i+=0.1;
 	}
 	else
@@ -468,7 +596,6 @@ void SpecificWorker::uphexapod()
 			p.z=tmp.z();
 			proxies[s]->setIKLeg(p,false);
 		}
-		qDebug()<<i;
 		i+=0.1;
 	}
 	if(i>1)
@@ -578,3 +705,82 @@ void SpecificWorker::ResetSlider()
 	sliderVel->setSliderPosition(0);
 	update();
 }
+
+void SpecificWorker::mostrarPointandAngles()
+{
+	sliderq1->setVisible(true);
+	sliderq2->setVisible(true);
+	sliderq3->setVisible(true);
+	sliderX->setVisible(true);
+	sliderY->setVisible(true);
+	sliderZ->setVisible(true);
+	
+	valueq1->setVisible(true);
+	valueq2->setVisible(true);
+	valueq3->setVisible(true);
+	valueX->setVisible(true);
+	valueY->setVisible(true);
+	valueZ->setVisible(true);
+	
+	labelX->setVisible(true);
+	labelY->setVisible(true);
+	labelZ->setVisible(true);
+	labelq1->setVisible(true);
+	labelq2->setVisible(true);
+	labelq3->setVisible(true);
+	Point->setVisible(true);
+	Angles->setVisible(true);
+}
+
+void SpecificWorker::ocultarAngles()
+{
+	sliderq1->setVisible(false);
+	sliderq2->setVisible(false);
+	sliderq3->setVisible(false);
+	sliderX->setVisible(true);
+	sliderY->setVisible(true);
+	sliderZ->setVisible(true);
+	
+	valueq1->setVisible(false);
+	valueq2->setVisible(false);
+	valueq3->setVisible(false);
+	valueX->setVisible(true);
+	valueY->setVisible(true);
+	valueZ->setVisible(true);
+	
+	labelX->setVisible(true);
+	labelY->setVisible(true);
+	labelZ->setVisible(true);
+	labelq1->setVisible(false);
+	labelq2->setVisible(false);
+	labelq3->setVisible(false);
+	Point->setVisible(true);
+	Angles->setVisible(false);
+}
+
+void SpecificWorker::ocultarPoint()
+{
+	sliderq1->setVisible(true);
+	sliderq2->setVisible(true);
+	sliderq3->setVisible(true);
+	sliderX->setVisible(false);
+	sliderY->setVisible(false);
+	sliderZ->setVisible(false);
+	
+	valueq1->setVisible(true);
+	valueq2->setVisible(true);
+	valueq3->setVisible(true);
+	valueX->setVisible(false);
+	valueY->setVisible(false);
+	valueZ->setVisible(false);
+	
+	labelX->setVisible(false);
+	labelY->setVisible(false);
+	labelZ->setVisible(false);
+	labelq1->setVisible(true);
+	labelq2->setVisible(true);
+	labelq3->setVisible(true);
+	Point->setVisible(false);
+	Angles->setVisible(true);
+}
+
