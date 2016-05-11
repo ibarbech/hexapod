@@ -33,6 +33,9 @@
 
 #include <genericworker.h>
 #include <innermodel/innermodel.h>
+#include <osgviewer/osgview.h>
+#include <innermodel/innermodelviewer.h>
+#include <qt4/QtCore/QTimer>
 
 class SpecificWorker : public GenericWorker
 {
@@ -44,10 +47,44 @@ public:
 
 
 public slots:
-	void compute(); 	
+	void compute();
+	void update();
+	void updateState(int state);
+	void stateuphexapod();
+	void updateposleg();
 
 private:
+	QTimer clk;
+	InnerModel *inner;
+	QString base;
+	QStringList legs;
+	int X, Y, Z, X_pre, Y_pre, Z_pre, modovalue, modoaux,syn;
+	float ik_x, ik_y, ik_z, vel, x, y , z;
+	QVec legsp[6], lini, lfin, lmed, lrot, lrot1, lrot2;
+	bool IK;
+	LegControllerPrx proxies[6];
+	int l1[3],l2[3];
+	RoboCompLegController::StateLeg statelegs[6];
+	RoboCompLegController::AnglesLeg angles;
 	
+	/*---------------------------------------------*/
+	void updateStates();
+	void statesmachine();
+	void uphexapod();
+	void fkLegs();
+	void ikLegs();
+	void ikBody();
+	bool caminar3x3();
+	bool rotar();
+	
+	
+	QVec bezier3(QVec p0, QVec p1, QVec p2, float t);
+	QVec bezier2(QVec p0, QVec p2, float t);
+	
+	double mapear(double x, double in_min, double in_max, double out_min, double out_max);
+	
+	OsgView *osgView;
+	InnerModelViewer *innerViewer;
 };
 
 #endif

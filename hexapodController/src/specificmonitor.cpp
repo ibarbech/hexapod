@@ -85,18 +85,35 @@ bool SpecificMonitor::sendParamsToWorker(RoboCompCommonBehavior::ParameterList p
 ///We need to supply a list of accepted values to each call
 void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 {
-// 	RoboCompCommonBehavior::Parameter aux;
-// 	aux.editable = true;
-// 	string name = PROGRAM_NAME;
-// 	
-// 	configGetString(name+".param_name", aux.value, "default");
-// 	//Check valid ranges
-// 	if( aux.value != "val1" and aux.value != "val2")
-// 	{
-// 		std::cout << __FUNCTION__ << "Warning. Wrong XXX value. Using default xxx" << std::endl;
-// 		params[name+".param_name"] = "xxx";
-// 	}
-// 	params[name+".param_name"] = aux;
+	RoboCompCommonBehavior::Parameter aux;
+	aux.editable = true;
+	bool defaulterror;
+	string name = PROGRAM_NAME;
+	cout<<name<<endl;
+	configGetString("",name+".floor", aux.value, "floor");
+	params[name+".floor"] = aux;
+	configGetString("",name+".base", aux.value, "base");
+	params[name+".base"] = aux;
+	configGetString("",name+".InnerModel", aux.value, "default");
+	params[name+".InnerModel"] = aux;
+	if(aux.value=="default")
+	{
+		qDebug()<<"Error de configuracion: InnerModelPath";
+		defaulterror=true;
+	}
+	
+	for(int i=1;i<=6;i++)
+	{
+		configGetString("",name+".nameleg"+to_string(i), aux.value, "default");
+		params[name+".nameleg"+to_string(i)] = aux;
+		if(aux.value=="default")
+		{
+			qDebug()<<"Error de configuracion: InnerModelPath";
+			defaulterror=true;
+		}
+	}
+	if(defaulterror)
+		qFatal("Modifique el archivo de configuracion");
 }
 
 //comprueba que los parametros sean correctos y los transforma a la estructura del worker

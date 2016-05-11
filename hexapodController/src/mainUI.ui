@@ -6,13 +6,312 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>739</width>
+    <height>650</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>hexapodController</string>
   </property>
+  <widget class="QFrame" name="frame">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>10</y>
+     <width>720</width>
+     <height>340</height>
+    </rect>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::StyledPanel</enum>
+   </property>
+   <property name="frameShadow">
+    <enum>QFrame::Raised</enum>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="comboBox">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>360</y>
+     <width>220</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <item>
+    <property name="text">
+     <string>None</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Alternating tripod</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Quadruped</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Crawl</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Rotate</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>FKLegs</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>IKLegs</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>IKBody</string>
+    </property>
+   </item>
+  </widget>
+  <widget class="QSplitter" name="splitter_27">
+   <property name="geometry">
+    <rect>
+     <x>330</x>
+     <y>390</y>
+     <width>401</width>
+     <height>201</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Horizontal</enum>
+   </property>
+   <widget class="QSplitter" name="splitter_11">
+    <property name="orientation">
+     <enum>Qt::Vertical</enum>
+    </property>
+    <widget class="QLabel" name="label_40">
+     <property name="text">
+      <string>Point (mm))</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_41">
+     <property name="text">
+      <string>Angles (rad)</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QSplitter" name="splitter_4">
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+    <widget class="QSplitter" name="splitter_3">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <widget class="QLabel" name="label">
+      <property name="text">
+       <string>X</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_2">
+      <property name="text">
+       <string>Y</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_3">
+      <property name="text">
+       <string>Z</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_13">
+      <property name="text">
+       <string>q1</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_35">
+      <property name="text">
+       <string>q2</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_39">
+      <property name="text">
+       <string>q3</string>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QSplitter" name="splitter">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <widget class="QSlider" name="sliderX">
+      <property name="minimum">
+       <number>-65537</number>
+      </property>
+      <property name="maximum">
+       <number>65537</number>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+     <widget class="QSlider" name="sliderY">
+      <property name="minimum">
+       <number>-65537</number>
+      </property>
+      <property name="maximum">
+       <number>65537</number>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+     <widget class="QSlider" name="sliderZ">
+      <property name="minimum">
+       <number>-65537</number>
+      </property>
+      <property name="maximum">
+       <number>65537</number>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+     <widget class="QSlider" name="sliderq1">
+      <property name="minimum">
+       <number>-65537</number>
+      </property>
+      <property name="maximum">
+       <number>65537</number>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+     <widget class="QSlider" name="sliderq2">
+      <property name="minimum">
+       <number>-65537</number>
+      </property>
+      <property name="maximum">
+       <number>65537</number>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+     <widget class="QSlider" name="sliderq3">
+      <property name="minimum">
+       <number>-65538</number>
+      </property>
+      <property name="maximum">
+       <number>65537</number>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QSplitter" name="splitter_2">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <widget class="QLabel" name="valueX">
+      <property name="text">
+       <string>Value</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="valueY">
+      <property name="text">
+       <string>Value</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="valueZ">
+      <property name="text">
+       <string>Value</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="valueq1">
+      <property name="text">
+       <string>Value</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="valueq2">
+      <property name="text">
+       <string>Value</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="valueq3">
+      <property name="text">
+       <string>Value</string>
+      </property>
+     </widget>
+    </widget>
+   </widget>
+  </widget>
+  <widget class="QSplitter" name="splitter_28">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>460</y>
+     <width>121</width>
+     <height>71</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Vertical</enum>
+   </property>
+   <widget class="QPushButton" name="Updatepos">
+    <property name="text">
+     <string>Update PosLeg</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="Uphexapod">
+    <property name="text">
+     <string>Up Hexapod</string>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QSplitter" name="splitter_30">
+   <property name="geometry">
+    <rect>
+     <x>170</x>
+     <y>450</y>
+     <width>111</width>
+     <height>181</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Horizontal</enum>
+   </property>
+   <widget class="QSplitter" name="splitter_29">
+    <property name="orientation">
+     <enum>Qt::Vertical</enum>
+    </property>
+    <widget class="QSlider" name="sliderVel">
+     <property name="maximum">
+      <number>6</number>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_42">
+     <property name="text">
+      <string>Velocidad</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QLabel" name="valuevel">
+    <property name="text">
+     <string>Value</string>
+    </property>
+   </widget>
+  </widget>
  </widget>
  <resources/>
  <connections/>
