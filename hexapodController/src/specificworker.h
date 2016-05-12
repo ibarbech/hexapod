@@ -55,24 +55,24 @@ public slots:
 	void stateuphexapod();
 	void updateposleg();
 	void ResetSlider();
-
+	void updateStates();
+	
 private:
-	QTimer clk;
+	QTimer clk,clkupdate;
 	InnerModel *inner;
 	QString base;
 	QStringList legs;
-	QQueue<int> stateCrawl;
-	int X, Y, Z, X_pre, Y_pre, Z_pre, modovalue, modoaux,syn;
-	float ik_x, ik_y, ik_z, vel, x, y , z, incremento;
+	QQueue<int> stateCrawl, stateQuadruped;
+	int modovalue;
+	float X, Y, Z, X_pre, Y_pre, Z_pre, vel, x, y , z, incremento;
 	QVec legsp[6], lini, lfin, lmed, lrot, lrot1, lrot2;
-	bool IK;
 	LegControllerPrx proxies[6];
 	int l1[3],l2[3];
 	RoboCompLegController::StateLeg statelegs[6];
 	RoboCompLegController::AnglesLeg angles;
 	RoboCompLegController::AnglesLeg angles_pre;
 	/*---------------------------------------------*/
-	void updateStates();
+	
 	void statesmachine();
 	void uphexapod();
 	void fkLegs();
@@ -87,6 +87,7 @@ private:
 	void ocultarPoint();
 	void ocultarAngles();
 	void mostrarPointandAngles();
+	
 	
 	
 	QVec bezier3(QVec p0, QVec p1, QVec p2, float t);

@@ -25,8 +25,6 @@
 */
 SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 {
-	syn=0;
-	IK=false;
 	modovalue=0;
 	vel=2;
 	proxies[0]=legcontroller1_proxy;
@@ -42,6 +40,13 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	stateCrawl.enqueue(3);
 	stateCrawl.enqueue(4);
 	stateCrawl.enqueue(5);
+	
+	stateQuadruped.enqueue(0);
+	stateQuadruped.enqueue(5);
+	stateQuadruped.enqueue(2);
+	stateQuadruped.enqueue(3);
+	stateQuadruped.enqueue(1);
+	stateQuadruped.enqueue(4);
 	
 	lini=QVec::vec3(0,0,0);
 	lfin=QVec::vec3(0,0,0);
@@ -68,8 +73,10 @@ SpecificWorker::SpecificWorker(MapPrx& mprx) : GenericWorker(mprx)
 	osgView = new OsgView(this->frame);
 	show();
 	clk.start(100);
+	clkupdate.start(10);
 // 	connect(Start, SIGNAL(clicked()), this, SLOT(iniciar()));
 // 	connect(Stop, SIGNAL(clicked()), this, SLOT(parar()));
+	connect(&clkupdate, SIGNAL(timeout()), this, SLOT(updateStates()));
 	connect(&clk, SIGNAL(timeout()), this, SLOT(update()));
 	connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(updateState(int)));
 	connect(Uphexapod, SIGNAL(clicked()), this, SLOT(stateuphexapod()));
@@ -120,7 +127,6 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 
 void SpecificWorker::compute()
 {
-	syn+=3;
 	switch(modovalue)
 	{
 		case -1:
@@ -138,7 +144,12 @@ void SpecificWorker::compute()
 				}
 			break;
 		case 2://Cuadrupedo
-				
+				ocultarAngles();
+				if(Quadruped())
+				{
+					lini=QVec::vec3(-X,0,-Z);
+					lfin=QVec::vec3(X,0,Z);
+				}
 			break;
 		case 3://Crawl
 				ocultarAngles();
@@ -210,18 +221,6 @@ void SpecificWorker::compute()
 			break;
 			
 	}
-	for(int i=0;i<6;i++)
-		statelegs[i] = proxies[i]->getStateLeg();
-	for(int i=0;i<6;i++)
-	{
-		RoboCompLegController::StateLeg s=statelegs[i];
-		inner->updateJointValue(QString::fromStdString(s.q1.name),s.q1.pos);
-		inner->updateJointValue(QString::fromStdString(s.q2.name),s.q2.pos);
-		inner->updateJointValue(QString::fromStdString(s.q3.name),s.q3.pos);
-	}
-	innerViewer->update();
-	osgView->autoResize();
-	osgView->frame();
 }
 
 bool SpecificWorker::caminar3x3()
@@ -465,86 +464,95 @@ bool SpecificWorker::Crawl()
 	{
 		if(lini!=QVec::vec3(0, 0, 0)&&lfin!=QVec::vec3(0,0,0))
 		{
-			int aux=stateCrawl.dequeue();
-			RoboCompLegController::StateLeg st=statelegs[aux];
-			QVec ini =QVec::vec3(st.x,legsp[aux].y(),st.z),
-			fin = legsp[aux]+lfin,med=legsp[aux],
-			tmp=bezier3(ini,QVec::vec3(med.x(),0,med.z()),fin,i);
-			stateCrawl.enqueue(aux);
 			RoboCompLegController::PoseLeg p;
-			p.x=tmp.x();
-			p.y=tmp.y();
-			p.z=tmp.z();
-			p.ref=base.toStdString();
-			p.vel=6;
-			proxies[aux]->setIKLeg(p,false);
-			
-			
-			aux=stateCrawl.dequeue();
-			st=statelegs[aux];
-			ini = QVec::vec3(st.x,legsp[aux].y(),st.z),
-			fin = legsp[aux]-lfin-((lini-lfin)/5),
-			tmp = bezier2(ini,fin,i);
-			stateCrawl.enqueue(aux);
-			p.x=tmp.x();
-			p.y=tmp.y();
-			p.z=tmp.z();
-			p.ref=base.toStdString();
-			p.vel=6;
-			proxies[aux]->setIKLeg(p,false);
-			
-			aux=stateCrawl.dequeue();
-			st=statelegs[aux];
-			ini = QVec::vec3(st.x,legsp[aux].y(),st.z),
-			fin = legsp[aux]-lfin-(((lini-lfin)/5)*2),
-			tmp = bezier2(ini,fin,i);
-			stateCrawl.enqueue(aux);
-			p.x=tmp.x();
-			p.y=tmp.y();
-			p.z=tmp.z();
-			p.ref=base.toStdString();
-			p.vel=6;
-			proxies[aux]->setIKLeg(p,false);
-			
-			aux=stateCrawl.dequeue();
-			st=statelegs[aux];
-			ini = QVec::vec3(st.x,legsp[aux].y(),st.z),
-			fin = legsp[aux]-lfin-(((lini-lfin)/5)*3),
-			tmp = bezier2(ini,fin,i);
-			stateCrawl.enqueue(aux);
-			p.x=tmp.x();
-			p.y=tmp.y();
-			p.z=tmp.z();
-			p.ref=base.toStdString();
-			p.vel=6;
-			proxies[aux]->setIKLeg(p,false);
-			
-			aux=stateCrawl.dequeue();
-			st=statelegs[aux];
-			ini = QVec::vec3(st.x,legsp[aux].y(),st.z),
-			fin = legsp[aux]-lfin-(((lini-lfin)/5)*4),
-			tmp = bezier2(ini,fin,i);
-			stateCrawl.enqueue(aux);
-			p.x=tmp.x();
-			p.y=tmp.y();
-			p.z=tmp.z();
-			p.ref=base.toStdString();
-			p.vel=6;
-			proxies[aux]->setIKLeg(p,false);
-			
-			aux=stateCrawl.dequeue();
-			st=statelegs[aux];
-			ini = QVec::vec3(st.x,legsp[aux].y(),st.z),
-			fin = legsp[aux]-lfin-(lini-lfin),
-			tmp = bezier2(ini,fin,i);
-			stateCrawl.enqueue(aux);
-			p.x=tmp.x();
-			p.y=tmp.y();
-			p.z=tmp.z();
-			p.ref=base.toStdString();
-			p.vel=6;
-			proxies[aux]->setIKLeg(p,false);
-			
+			RoboCompLegController::StateLeg st;
+			QVec ini,fin,tmp,med;
+			for(int j=0;j<6;j++)
+			{
+				int aux=stateCrawl.dequeue();
+				st=statelegs[aux];
+				if(j==0)
+				{
+					ini =QVec::vec3(st.x,legsp[aux].y(),st.z),
+					fin = legsp[aux]+lfin,med=legsp[aux],
+					tmp=bezier3(ini,QVec::vec3(med.x(),0,med.z()),fin,i);
+				}
+				else
+				{
+					ini = QVec::vec3(st.x,legsp[aux].y(),st.z),
+					fin = legsp[aux]-lfin-(((lini-lfin)/5)*j),
+					tmp = bezier2(ini,fin,i);
+				}
+				stateCrawl.enqueue(aux);
+				p.x=tmp.x();
+				p.y=tmp.y();
+				p.z=tmp.z();
+				p.ref=base.toStdString();
+				p.vel=6;
+				proxies[aux]->setIKLeg(p,false);
+			}
+			i+=tbezier;
+			if(i>1)
+				return true;
+			return false;
+		}
+	}
+	return true;
+}
+
+bool SpecificWorker::Quadruped()
+{
+	static float i=0;
+	bool ismoving=false;
+	if(i>1)
+	{	
+		i=0;
+		for(int k=0;k<6;k++)
+			if(proxies[k]->getStateLeg().ismoving)
+			{
+				ismoving=true;
+				break;
+			}
+		if(!ismoving)
+		{
+			stateQuadruped.enqueue(stateQuadruped.dequeue());
+			stateQuadruped.enqueue(stateQuadruped.dequeue());
+		}
+	}
+	if(!ismoving)	
+	{
+		if(lini!=QVec::vec3(0, 0, 0)&&lfin!=QVec::vec3(0,0,0))
+		{
+			RoboCompLegController::PoseLeg p;
+			RoboCompLegController::StateLeg st;
+			QVec ini,fin,tmp,med;
+			for(int j=0;j<6;j++)
+			{
+				int aux=stateQuadruped.dequeue();
+				st=statelegs[aux];
+				if(j==0||j==1)
+				{ //patas por arco
+					ini =QVec::vec3(st.x,legsp[aux].y(),st.z),
+					fin = legsp[aux]+lfin,med=legsp[aux],
+					tmp=bezier3(ini,QVec::vec3(med.x(),0,med.z()),fin,i);
+				}
+				else
+				{ //patas por tierra
+					int a=2;
+					if(j==2||j==3)
+						a=1;
+					ini = QVec::vec3(st.x,legsp[aux].y(),st.z),
+					fin = legsp[aux]-lfin-(((lini-lfin)/3)*a),
+					tmp = bezier2(ini,fin,i);
+				}
+				stateQuadruped.enqueue(aux);
+				p.x=tmp.x();
+				p.y=tmp.y();
+				p.z=tmp.z();
+				p.ref=base.toStdString();
+				p.vel=6;
+				proxies[aux]->setIKLeg(p,false);
+			}
 			i+=tbezier;
 			if(i>1)
 				return true;
@@ -603,7 +611,7 @@ void SpecificWorker::uphexapod()
 		if(!state)
 		{
 			state=true;
-			modovalue=modoaux;
+			modovalue=comboBox->currentIndex();
 		}
 		else
 			state=false;
@@ -782,5 +790,21 @@ void SpecificWorker::ocultarPoint()
 	labelq3->setVisible(true);
 	Point->setVisible(false);
 	Angles->setVisible(true);
+}
+
+void SpecificWorker::updateStates()
+{
+	for(int i=0;i<6;i++)
+		statelegs[i] = proxies[i]->getStateLeg();
+	for(int i=0;i<6;i++)
+	{
+		RoboCompLegController::StateLeg s=statelegs[i];
+		inner->updateJointValue(QString::fromStdString(s.q1.name),s.q1.pos);
+		inner->updateJointValue(QString::fromStdString(s.q2.name),s.q2.pos);
+		inner->updateJointValue(QString::fromStdString(s.q3.name),s.q3.pos);
+	}
+	innerViewer->update();
+	osgView->autoResize();
+	osgView->frame();
 }
 
