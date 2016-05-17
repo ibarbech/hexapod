@@ -120,7 +120,7 @@ bool SpecificWorker::setParams(RoboCompCommonBehavior::ParameterList params)
 	for(auto p:legsp)
 		qDebug()<<p;
 	
-	timer.start(100);
+	timer.start(10);
 	
 	return true;
 }
@@ -228,12 +228,17 @@ bool SpecificWorker::caminar3x3()
 	static float i=0;
 	bool ismoving=false;
 	if(i==0)
+	{
 		for(int k=0;k<6;k++)
 			if(proxies[k]->getStateLeg().ismoving)
 			{
 				ismoving=true;
 				break;
 			}
+		if(!ismoving)
+			for(int i=0;i<6;i++)
+				pre_statelegs[i]=statelegs[i];
+	}
 	if(!ismoving)	
 	{
 		if(lini!=QVec::vec3(0, 0, 0)&&lfin!=QVec::vec3(0,0,0))
@@ -241,7 +246,7 @@ bool SpecificWorker::caminar3x3()
 			//patas por arco
 			for(int s=0;s<3;s++)
 			{
-				RoboCompLegController::StateLeg st=statelegs[l1[s]];
+				RoboCompLegController::StateLeg st=pre_statelegs[l1[s]];
 				QVec posini =QVec::vec3(st.x,legsp[l1[s]].y(),st.z);
 				QVec ini = posini,fin = legsp[l1[s]]+lfin,med=legsp[l1[s]];
 				QVec tmp=bezier3(ini,QVec::vec3(med.x(),0,med.z()),fin,i);
@@ -250,14 +255,14 @@ bool SpecificWorker::caminar3x3()
 				p.y=tmp.y();
 				p.z=tmp.z();
 				p.ref=base.toStdString();
-				p.vel=6;
+				p.vel = vel;
 				proxies[l1[s]]->setIKLeg(p,false);
 				
 			}
 		// patas por tierra
 			for(int s=0;s<3;s++)
 			{
-				RoboCompLegController::StateLeg st=statelegs[l2[s]];
+				RoboCompLegController::StateLeg st=pre_statelegs[l2[s]];
 				QVec posini =QVec::vec3(st.x,legsp[l2[s]].y(),st.z);
 				QVec ini = posini,fin = legsp[l2[s]]+lini;
 				QVec tmp=bezier2(ini,fin,i);
@@ -266,7 +271,7 @@ bool SpecificWorker::caminar3x3()
 				p.y=tmp.y();
 				p.z=tmp.z();
 				p.ref=base.toStdString();
-				p.vel=6;
+				p.vel = vel;
 				proxies[l2[s]]->setIKLeg(p,false);
 				
 			}
@@ -302,12 +307,16 @@ bool SpecificWorker::rotar()
 				ismoving=true;
 				break;
 			}
+		
 		if(!ismoving)
 		{
+			if(i==0)
+				for(int i=0;i<6;i++)
+					pre_statelegs[i]=statelegs[i];
 			QVec ini,fin;
 			for(int j=0;j<6;j++)
 			{
-				RoboCompLegController::StateLeg st=statelegs[j];
+				RoboCompLegController::StateLeg st=pre_statelegs[j];
 				QVec posini =QVec::vec3(st.x,legsp[j].y(),st.z);
 				if((j==2 || j==3))
 				{
@@ -448,9 +457,8 @@ bool SpecificWorker::Crawl()
 {
 	static float i=0;
 	bool ismoving=false;
-	if(i>1)
-	{	
-		i=0;
+	if(i==0)
+	{
 		for(int k=0;k<6;k++)
 			if(proxies[k]->getStateLeg().ismoving)
 			{
@@ -458,7 +466,11 @@ bool SpecificWorker::Crawl()
 				break;
 			}
 		if(!ismoving)
+		{
 			stateCrawl.enqueue(stateCrawl.dequeue());
+			for(int i=0;i<6;i++)
+				pre_statelegs[i]=statelegs[i];
+		}
 	}
 	if(!ismoving)	
 	{
@@ -470,7 +482,7 @@ bool SpecificWorker::Crawl()
 			for(int j=0;j<6;j++)
 			{
 				int aux=stateCrawl.dequeue();
-				st=statelegs[aux];
+				st=pre_statelegs[aux];
 				if(j==0)
 				{
 					ini =QVec::vec3(st.x,legsp[aux].y(),st.z),
@@ -488,12 +500,15 @@ bool SpecificWorker::Crawl()
 				p.y=tmp.y();
 				p.z=tmp.z();
 				p.ref=base.toStdString();
-				p.vel=6;
+				p.vel = vel;
 				proxies[aux]->setIKLeg(p,false);
 			}
 			i+=tbezier;
 			if(i>1)
+			{
 				return true;
+				i=0;
+			}
 			return false;
 		}
 	}
@@ -504,9 +519,8 @@ bool SpecificWorker::Quadruped()
 {
 	static float i=0;
 	bool ismoving=false;
-	if(i>1)
-	{	
-		i=0;
+	if(i==0)
+	{
 		for(int k=0;k<6;k++)
 			if(proxies[k]->getStateLeg().ismoving)
 			{
@@ -517,6 +531,8 @@ bool SpecificWorker::Quadruped()
 		{
 			stateQuadruped.enqueue(stateQuadruped.dequeue());
 			stateQuadruped.enqueue(stateQuadruped.dequeue());
+			for(int i=0;i<6;i++)
+				pre_statelegs[i]=statelegs[i];
 		}
 	}
 	if(!ismoving)	
@@ -529,7 +545,7 @@ bool SpecificWorker::Quadruped()
 			for(int j=0;j<6;j++)
 			{
 				int aux=stateQuadruped.dequeue();
-				st=statelegs[aux];
+				st=pre_statelegs[aux];
 				if(j==0||j==1)
 				{ //patas por arco
 					ini =QVec::vec3(st.x,legsp[aux].y(),st.z),
@@ -550,12 +566,15 @@ bool SpecificWorker::Quadruped()
 				p.y=tmp.y();
 				p.z=tmp.z();
 				p.ref=base.toStdString();
-				p.vel=6;
+				p.vel = vel;
 				proxies[aux]->setIKLeg(p,false);
 			}
 			i+=tbezier;
 			if(i>1)
+			{
+				i=0;
 				return true;
+			}
 			return false;
 		}
 	}
@@ -569,14 +588,17 @@ void SpecificWorker::uphexapod()
 	static QVec ini[6],fin[6];
 	RoboCompLegController::PoseLeg p;
 	p.ref=base.toStdString();
-	p.vel=6;
+	p.vel = vel;
+	if(i==0)
+		for(int i=0;i<6;i++)
+			pre_statelegs[i]=statelegs[i];
 	if(state)
 	{
 		for(int s=0;s<6;s++)
 		{
 			if(i==0)
 			{
-				RoboCompLegController::StateLeg st=statelegs[s];
+				RoboCompLegController::StateLeg st=pre_statelegs[s];
 				fin[s] = QVec::vec3(legsp[s].x(),20,legsp[s].z());
 				ini[s] = QVec::vec3(st.x,st.y,st.z);
 			}
@@ -594,7 +616,7 @@ void SpecificWorker::uphexapod()
 		{
 			if(i==0)
 			{
-				RoboCompLegController::StateLeg st=statelegs[s];
+				RoboCompLegController::StateLeg st=pre_statelegs[s];
 				fin[s] =legsp[s];
 				ini[s] = QVec::vec3(st.x,st.y,st.z);
 			}

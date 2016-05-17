@@ -68,7 +68,7 @@ private:
 	QVec legsp[6], lini, lfin, lmed, lrot, lrot1, lrot2;
 	LegControllerPrx proxies[6];
 	int l1[3],l2[3];
-	RoboCompLegController::StateLeg statelegs[6];
+	RoboCompLegController::StateLeg statelegs[6], pre_statelegs[6];
 	RoboCompLegController::AnglesLeg angles;
 	RoboCompLegController::AnglesLeg angles_pre;
 	/*---------------------------------------------*/
