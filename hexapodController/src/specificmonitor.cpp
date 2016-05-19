@@ -87,7 +87,6 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 {
 	RoboCompCommonBehavior::Parameter aux;
 	aux.editable = true;
-	bool defaulterror;
 	string name = PROGRAM_NAME;
 	cout<<name<<endl;
 	configGetString("",name+".floor", aux.value, "floor");
@@ -97,23 +96,16 @@ void SpecificMonitor::readConfig(RoboCompCommonBehavior::ParameterList &params )
 	configGetString("",name+".InnerModel", aux.value, "default");
 	params[name+".InnerModel"] = aux;
 	if(aux.value=="default")
-	{
 		qDebug()<<"Error de configuracion: InnerModelPath";
-		defaulterror=true;
-	}
 	
 	for(int i=1;i<=6;i++)
 	{
 		configGetString("",name+".nameleg"+to_string(i), aux.value, "default");
 		params[name+".nameleg"+to_string(i)] = aux;
 		if(aux.value=="default")
-		{
-			qDebug()<<"Error de configuracion: InnerModelPath";
-			defaulterror=true;
-		}
+			qDebug()<<"Error de configuracion: Legs"<<i;
 	}
-	if(defaulterror)
-		qFatal("Modifique el archivo de configuracion");
+	
 }
 
 //comprueba que los parametros sean correctos y los transforma a la estructura del worker
